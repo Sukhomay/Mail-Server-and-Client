@@ -27,8 +27,9 @@ int main(int argc, char *argv[])
     socklen_t lenClientAddress;
     pid_t pid;
     char buffer[BUFFERSIZE], dataReceived[DATASIZE]; 
-    ssize_t bytesReceived, bytesSent;
+    size_t bytesReceived, bytesSent;
     int i, continueFlag;
+    char username[50] = "powerSMTP";
 
 
     time_t t;                                                        
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
         if (clientSocketFD<0) 
         {
             perror("[SMTPMAIL_SERVER]: Error! Unable to accept client address.\n");
-            continue;
+            exit(0);
         }
         // Fork to serve the client
         pid = fork();
@@ -103,7 +104,37 @@ int main(int argc, char *argv[])
             {
                 dataReceived[i] = '\0';
             }
-            // Store the entire message in dataReceived for further processing
+            
+            snprintf(buffer, sizeof(buffer), "220 %s Service ready\r\n", username);
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            // Receive initial response from client
+            bytesReceived = recv(clientSocketFD, buffer, sizeof(buffer), 0);
+            if (bytesReceived == -1)
+            {
+                perror("Error receiving from client server");
+                exit(EXIT_FAILURE);
+            }
+            buffer[bytesReceived] = '\0';
+            printf("%s", buffer);  // Print client's initial response
+
+            char sender_domain[50];
+            strcpy(sender_domain, buffer + 5);
+            snprintf(buffer, sizeof(buffer), "250 OK Hello %s\r\n", sender_domain);
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            exit(0);
+        }
+    }
+
+    close(serverSocketFD);
+
+    return 0;
+}
+
+
+/*
+// Store the entire message in dataReceived for further processing
             while(continueFlag)
             {
                 bytesReceived = recv(clientSocketFD, buffer, BUFFERSIZE, 0);
@@ -150,11 +181,5 @@ int main(int argc, char *argv[])
             // Close the client socket at the end of service complete
             close(clientSocketFD);
             exit(EXIT_SUCCESS);
-        } 
-    }
-
-    close(serverSocketFD);
-
-    return 0;
-}
+*/
 
