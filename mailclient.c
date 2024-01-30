@@ -8,7 +8,15 @@
 
 #define MAX_BUFFER_SIZE 1024
 
-void send_mail(int smtp_port, const char *server_IP, char *username);
+void send_mail(int smtp_port, const char *server_IP, const char *username);
+
+void format(char *s)
+{
+    int i = 0;
+    while(s[i] != '\n')
+        i++;
+    s[i] = '\0';
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
@@ -53,7 +61,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void send_mail(int smtp_port, const char *server_IP, char *username)
+void send_mail(int smtp_port, const char *server_IP, const char *username)
 {
     int smtp_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (smtp_socket == -1) {
@@ -86,7 +94,9 @@ void send_mail(int smtp_port, const char *server_IP, char *username)
     printf("%s", buffer);  // Print server's initial response
 
     // Sending HELO command
-    char *domain = strtok(username, "@");
+    char username_[100];
+    strcpy(username_, username);
+    char *domain = strtok(username_, "@");
     domain = strtok(NULL, "@");
     snprintf(buffer, sizeof(buffer), "HELO %s\r\n", domain);
     send(smtp_socket, buffer, strlen(buffer), 0);
@@ -102,6 +112,7 @@ void send_mail(int smtp_port, const char *server_IP, char *username)
     printf("%s", buffer);  // Print server's response to HELO command
 
     // Get mail from user
+    char sender[100];
     char recipient[100];
     char subject[100];
     printf("Enter mail to be sent in the specified format:\n");
@@ -114,45 +125,71 @@ void send_mail(int smtp_port, const char *server_IP, char *username)
     const char *line0Pattern = "From: [^@]+@[^@]+";
     const char *line1Pattern = "To: [^@]+@[^@]+";
     const char *line2Pattern = "Subject: [^@]*";
+    regex_t regex0, regex1, regex2;
+    regcomp(&regex0, line0Pattern, REG_EXTENDED);
+    regcomp(&regex1, line1Pattern, REG_EXTENDED);
+    regcomp(&regex2, line2Pattern, REG_EXTENDED);
+
     int ind = 0;
+    char clear;
+    scanf("%c", &clear);
     while(1)
     {
-        scanf(" %[^\n]s", mailContent[ind]);
+        // scanf("%[^\n]s", mailContent[ind]);
+        // gets(mailContent[ind]);
+        fgets(mailContent[ind], 80, stdin);
+        format(mailContent[ind]);
 
         if(ind == 0)
         {
-
+            if (regexec(&regex0, mailContent[ind], 0, NULL, 0) != 0) 
+            {
+                printf("Wrong format! Re enter the last line.\n");
+                continue;
+            }
+            snprintf(sender, sizeof(sender), "%s", mailContent[ind] + 6);
         }
         else if(ind == 1)
         {
-
+            if (regexec(&regex1, mailContent[ind], 0, NULL, 0) != 0) 
+            {
+                printf("Wrong format! Re enter the last line.\n");
+                continue;
+            }
+            snprintf(recipient, sizeof(recipient), "%s", mailContent[ind] + 4);
         }
         else if(ind == 2)
         {
-
+            if (regexec(&regex2, mailContent[ind], 0, NULL, 0) != 0) 
+            {
+                printf("Wrong format! Re enter the last line.\n");
+                continue;
+            }
         }
-        else
+        printf("%s\n", mailContent[ind]);
+        if(strcmp(mailContent[ind], ".") == 0)
         {
-
+            break;
         }
+        ind++;
     }
     // printf("From: <%s>\n", username);
     // printf("To: ");
     // scanf("%s", recipient); // Assume only one recipient for simplicity
 
+    // sending MAIL command
+    snprintf(buffer, sizeof(buffer), "MAIL FROM: %s\r\n", sender);
+    send(smtp_socket, buffer, strlen(buffer), 0);
 
-    // snprintf(buffer, sizeof(buffer), "MAIL FROM: %s\r\n", username);
-    // send(smtp_socket, buffer, strlen(buffer), 0);
-
-    // // Receiving response for MAIL command
-    // bytesReceived = recv(smtp_socket, buffer, sizeof(buffer), 0);
-    // if (bytesReceived == -1) 
-    // {
-    //     perror("Error receiving from SMTP server");
-    //     exit(EXIT_FAILURE);
-    // }
-    // buffer[bytesReceived] = '\0';
-    // printf("%s", buffer);  // Print server's response to MAIL command
+    // Receiving response for MAIL command
+    bytesReceived = recv(smtp_socket, buffer, sizeof(buffer), 0);
+    if (bytesReceived == -1) 
+    {
+        perror("Error receiving from SMTP server");
+        exit(EXIT_FAILURE);
+    }
+    buffer[bytesReceived] = '\0';
+    printf("%s", buffer);  // Print server's response to MAIL command
     
     // snprintf(buffer, sizeof(buffer), "RCPT TO: %s\r\n", recipient);
     // send(smtp_socket, buffer, strlen(buffer), 0);

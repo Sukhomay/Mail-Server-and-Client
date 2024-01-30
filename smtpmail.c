@@ -115,12 +115,28 @@ int main(int argc, char *argv[])
                 perror("Error receiving from client server");
                 exit(EXIT_FAILURE);
             }
-            buffer[bytesReceived] = '\0';
-            printf("%s", buffer);  // Print client's initial response
+            buffer[bytesReceived-2] = '\0';
+            printf("%s\n", buffer);  // Print client's initial response
 
             char sender_domain[50];
             strcpy(sender_domain, buffer + 5);
             snprintf(buffer, sizeof(buffer), "250 OK Hello %s\r\n", sender_domain);
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            // Receive MAIL from client
+            bytesReceived = recv(clientSocketFD, buffer, sizeof(buffer), 0);
+            if (bytesReceived == -1)
+            {
+                perror("Error receiving from client server");
+                exit(EXIT_FAILURE);
+            }
+            buffer[bytesReceived-2] = '\0';
+            printf("%s\n", buffer); 
+
+            // answer for MAIL
+            char sender[50];
+            strcpy(sender, buffer + 11);
+            snprintf(buffer, sizeof(buffer), "250 %s... Sender ok\r\n", sender);
             send(clientSocketFD, buffer, strlen(buffer), 0);
 
             exit(0);
