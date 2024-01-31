@@ -9,7 +9,7 @@
 
 #define BUFFERSIZE 101
 #define DATASIZE 1024
-#define DATETIMESIZE 15
+#define DATETIMESIZE 25
 #define PATHSIZE 1024
 
 
@@ -170,9 +170,15 @@ int main(int argc, char *argv[])
             snprintf(buffer, sizeof(buffer), "354 Enter mail, end with \".\" on a line by itself\r\n");
             send(clientSocketFD, buffer, strlen(buffer), 0);
 
+            // Get the current date and time
+            t = time(NULL);                                                        
+            dateTime = *localtime(&t);  
+            snprintf(dateTimeData, DATETIMESIZE, "Received: %d.%d.%d:%d:%d", dateTime.tm_mday, dateTime.tm_mon+1, dateTime.tm_year+1900, dateTime.tm_hour, dateTime.tm_min);
+
             // Receive whole message from client
             // int fd = open("try.txt", O_WRONLY | O_APPEND);
             char c1 = '\0', c2 = '\0', c3 = '\0';
+            int newl = 0, dtflag = 1;
             int flag = 1;
             while (flag)
             {
@@ -183,7 +189,15 @@ int main(int argc, char *argv[])
                 {
                     // write(fd, )
                     printf("%c", buffer[i]);
-                    
+
+                    if(buffer[i] == '\n')
+                        newl++;
+                    if(newl == 3 && dtflag)
+                    {
+                        printf("%s\n", dateTimeData);
+                        dtflag = 0;
+                    }
+
                     c1 = c2;
                     c2 = c3;
                     c3 = buffer[i];
