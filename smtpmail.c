@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define BUFFERSIZE 101
 #define DATASIZE 1024
@@ -139,6 +140,63 @@ int main(int argc, char *argv[])
             snprintf(buffer, sizeof(buffer), "250 %s... Sender ok\r\n", sender);
             send(clientSocketFD, buffer, strlen(buffer), 0);
 
+            // Receive RCPT from client
+            bytesReceived = recv(clientSocketFD, buffer, sizeof(buffer), 0);
+            if (bytesReceived == -1)
+            {
+                perror("Error receiving from client server");
+                exit(EXIT_FAILURE);
+            }
+            buffer[bytesReceived-2] = '\0';
+            printf("%s\n", buffer); 
+
+            // answer for RCPT
+            char recipient[50];
+            strcpy(recipient, buffer + 9);
+            snprintf(buffer, sizeof(buffer), "250 root... Recipient ok\r\n");
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            // Receive DATA command from client
+            bytesReceived = recv(clientSocketFD, buffer, sizeof(buffer), 0);
+            if (bytesReceived == -1)
+            {
+                perror("Error receiving from client server");
+                exit(EXIT_FAILURE);
+            }
+            buffer[bytesReceived-2] = '\0';
+            printf("%s\n", buffer); 
+
+            // answer for DATA
+            snprintf(buffer, sizeof(buffer), "354 Enter mail, end with \".\" on a line by itself\r\n");
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            // Receive whole message from client
+            int fd = open("try.txt", O_WRONLY | O_APPEND);
+            char c1 = '\0', c2 = '\0', c3 = '\0';
+            int flag = 1;
+            while (flag)
+            {
+                bytesReceived = recv(clientSocketFD, buffer, sizeof(buffer), 0);
+                // buffer[bytesReceived] = '\0';
+                // printf("%s", buffer);
+                for (int i = 0; i < bytesReceived; i++)
+                {
+                    // write(fd, )
+                    printf("%c", buffer[i]);
+                    
+                    c1 = c2;
+                    c2 = c3;
+                    c3 = buffer[i];
+                    if(c1 == '\n' && c2 == '.' && c3 == '\r')
+                    {
+                        // printf("bui\n");
+                        printf("%c", '\n');
+                        flag = 0;
+                        break;
+                    }
+                }
+            }
+            printf("succeed\n");
             exit(0);
         }
     }
