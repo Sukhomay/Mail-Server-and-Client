@@ -28,9 +28,11 @@ int main(int argc, char *argv[]) {
     int smtpPort = atoi(argv[2]);
     int pop3Port = atoi(argv[3]);
 
-    char username[100];
+    char username[100], password[100];
     printf("Enter username: ");
     scanf("%s", username);
+    printf("Enter password: ");
+    scanf("%s", password);
 
     int option;
     do {
@@ -96,8 +98,8 @@ void send_mail(int smtp_port, const char *server_IP, const char *username)
         {
             if (regexec(&regex0, mailContent[ind], 0, NULL, 0) != 0) 
             {
-                printf("Wrong format! Re enter the last line.\n");
-                continue;
+                printf("Incorrect format!\n");
+                return;
             }
             snprintf(sender, sizeof(sender), "%s", mailContent[ind] + 6);
         }
@@ -105,8 +107,8 @@ void send_mail(int smtp_port, const char *server_IP, const char *username)
         {
             if (regexec(&regex1, mailContent[ind], 0, NULL, 0) != 0) 
             {
-                printf("Wrong format! Re enter the last line.\n");
-                continue;
+                printf("Incorrect format!\n");
+                return;
             }
             snprintf(recipient, sizeof(recipient), "%s", mailContent[ind] + 4);
         }
@@ -114,8 +116,8 @@ void send_mail(int smtp_port, const char *server_IP, const char *username)
         {
             if (regexec(&regex2, mailContent[ind], 0, NULL, 0) != 0) 
             {
-                printf("Wrong format! Re enter the last line.\n");
-                continue;
+                printf("Incorrect format!\n");
+                return;
             }
         }
         // printf("%s\n", mailContent[ind]);
@@ -227,40 +229,30 @@ void send_mail(int smtp_port, const char *server_IP, const char *username)
         send(smtp_socket, buffer, strlen(buffer), 0);
     }
 
+    // Receiving response for whole message
+    bytesReceived = recv(smtp_socket, buffer, sizeof(buffer), 0);
+    if (bytesReceived == -1) 
+    {
+        perror("Error receiving from SMTP server");
+        exit(EXIT_FAILURE);
+    }
+    buffer[bytesReceived] = '\0';
+    printf("%s", buffer);  
 
-    
+    // sending QUIT command
+    snprintf(buffer, sizeof(buffer), "QUIT\r\n");
+    send(smtp_socket, buffer, strlen(buffer), 0);
 
-    // printf("Subject: ");
-    // scanf(" %[^\n]s", subject); // Read subject with spaces
+    // Receiving response for QUIT command
+    bytesReceived = recv(smtp_socket, buffer, sizeof(buffer), 0);
+    if (bytesReceived == -1) 
+    {
+        perror("Error receiving from SMTP server");
+        exit(EXIT_FAILURE);
+    }
+    buffer[bytesReceived] = '\0';
+    printf("%s", buffer);  // Print server's response to QUIT command
 
-    // // Construct and send mail data
-    // snprintf(buffer, sizeof(buffer), "From: <%s>\r\nTo: <%s>\r\nSubject: %s\r\n", username, recipient, subject);
-    // send(smtp_socket, "DATA\r\n", 6, 0);
-    // send(smtp_socket, buffer, strlen(buffer), 0);
-
-
-    // printf("Message body (End with a single dot on a new line):\n");
-    // char dataLine[100];
-    // while(1)
-    // {
-    //     scanf(" %[^\n]s", dataLine);
-    //     snprintf(buffer, sizeof(buffer), "%s\r\n", dataLine);
-    //     send(smtp_socket, buffer, strlen(buffer), 0);
-
-    //     if(strcmp(dataLine, ".") == 0)
-    //         break;
-    // }
-
-    // Receive response for command DATA
-    // bytesReceived = recv(smtp_socket, buffer, sizeof(buffer), 0);
-    // if (bytesReceived == -1) {
-    //     perror("Error receiving from SMTP server");
-    //     exit(EXIT_FAILURE);
-    // }
-    // buffer[bytesReceived] = '\0';
-    // printf("%s", buffer);  // Print server's response to command DATA
-
-    // Close connection with SMTP server
-    // send(smtp_socket, "QUIT\r\n", 6, 0);
+    printf("\nMail sent successfully\n");
     close(smtp_socket);
 }

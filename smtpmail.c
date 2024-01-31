@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
             send(clientSocketFD, buffer, strlen(buffer), 0);
 
             // Receive whole message from client
-            int fd = open("try.txt", O_WRONLY | O_APPEND);
+            // int fd = open("try.txt", O_WRONLY | O_APPEND);
             char c1 = '\0', c2 = '\0', c3 = '\0';
             int flag = 1;
             while (flag)
@@ -196,7 +196,26 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-            printf("succeed\n");
+            
+            // answer for whole message
+            snprintf(buffer, sizeof(buffer), "250 OK Message accepted for delivery\r\n");
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            // Receive QUIT command from client
+            bytesReceived = recv(clientSocketFD, buffer, sizeof(buffer), 0);
+            if (bytesReceived == -1)
+            {
+                perror("Error receiving from client server");
+                exit(EXIT_FAILURE);
+            }
+            buffer[bytesReceived-2] = '\0';
+            printf("%s\n", buffer); 
+
+            // answer for QUIT
+            snprintf(buffer, sizeof(buffer), "221 %s closing connection\r\n", username);
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            printf("\n\n");
             exit(0);
         }
     }
