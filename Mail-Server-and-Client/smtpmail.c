@@ -295,7 +295,7 @@ void respondToRCPT(int clientSocketFD, char dataReceived[], char receiverMailAdd
         send(clientSocketFD, buffer, strlen(buffer), 0);
         printf("Invalid address in [TO] field. Closing the connection...\n\n");
         close(clientSocketFD);
-        exit(EXIT_FAILURE);
+        exit(0);
     }
     else
     {

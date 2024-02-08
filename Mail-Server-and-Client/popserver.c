@@ -13,14 +13,17 @@
 #define PATHSIZE 1024
 #define COMMANDSIZE 10
 #define MAXEMAILADDRLEN 80
-#define MAXMAIL 20
+#define MAXDETAILS 100
+#define MAXMAIL 100
 
 // File path for storing the list of registered mailboxes
 const char userListFile[] = "user.txt";
 
 // Forward function declarations
 int loadInfo(char *username, int *stratLine, int *mailSize);
-
+void dataReceive(int cli_socket, char *dataReceived);
+void sendError(int clientSocketFD, char *message);
+void respondToUSER(int clientSocketFD, char *dataReceived);
 
 int main(int argc, char *argv[]) 
 {
@@ -39,7 +42,7 @@ int main(int argc, char *argv[])
     char buffer[BUFFERSIZE], dataReceived[DATASIZE]; 
     size_t bytesReceived, bytesSent;
     int i, endOfTextFlag;
-    char username[50] = "powerSMTP";
+    char username[50] = "powerPOP3";
 
     char receiverMailBoxPath[PATHSIZE];
     FILE *receiverMailBoxFilePtr;
@@ -105,10 +108,53 @@ int main(int argc, char *argv[])
             // Close the parent socket
             close(serverSocketFD);
             
-            char clientuser[50] = "sukh@kgp.in";
-            int stratLine[50], mailSize[50];
-            int t = loadInfo(clientuser, stratLine, mailSize);
-            printf("total : %d\n", t);
+            char client_user[MAXDETAILS], password[MAXDETAILS];
+            int stratLine[MAXMAIL], mailSize[MAXMAIL];
+            
+            // Acknowledment of scuccessful acceptance to the client
+            snprintf(buffer, sizeof(buffer), "+OK %s Service ready\r\n", username);
+            send(clientSocketFD, buffer, strlen(buffer), 0);
+
+            // Continuously receive command response from client
+            char *commandFromClient;
+
+            // First command must be user
+            dataReceive(clientSocketFD, dataReceived);
+
+            // Process command as required 
+            char _dataReceived_[DATASIZE];
+            strcpy(_dataReceived_, dataReceived);
+            commandFromClient = strtok(_dataReceived_, " \t\n");
+
+            if(strcmp(commandFromClient, "USER")==0)
+            {
+                respondToUSER(clientSocketFD, dataReceived);
+            }
+            else
+            {
+                sendError(clientSocketFD, "-ERR");
+            }
+
+            while(1)
+            {
+                dataReceive(clientSocketFD, dataReceived);
+
+                // Process each command as required 
+                char _dataReceived_[DATASIZE];
+                strcpy(_dataReceived_, dataReceived);
+                commandFromClient = strtok(_dataReceived_, " \t\n");
+                
+                if(8)
+                else
+                {
+                    fprintf(stderr, "invalid command received from client.\n Exiting... \n");
+                    exit(EXIT_FAILURE);
+                }
+
+            }
+
+            printf("\n\n");
+            
             exit(0);
         }
     }
@@ -119,7 +165,6 @@ int main(int argc, char *argv[])
 }
 
 // Functions 
-
 int loadInfo(char *username, int *stratLine, int *mailSize)
 {
     char mailPath[PATHSIZE];
@@ -165,75 +210,43 @@ int loadInfo(char *username, int *stratLine, int *mailSize)
     return total;
 }
 
+// Function to receive data from the server
+void dataReceive(int cli_socket, char *dataReceived)
+{
+    int endOfTextFlag=0;
+    char buffer[MAX_BUFFER_SIZE];
+    int i;
+    for(int i=0; i<MAX_BUFFER_SIZE; i++)
+    {
+        dataReceived[i]='\0';
+    }
+    while(1)
+    {
+        int bytesReceived = recv(cli_socket, buffer, sizeof(buffer), 0);
+        if (bytesReceived == -1)
+        {
+            perror("Error receiving from SMTP server.\n Exiting...\n");
+            exit(EXIT_FAILURE);
+        }
+        buffer[bytesReceived] = '\0';
+        for(i=0; i<bytesReceived-1; i++)
+        {
+            if(buffer[i]=='\r' && buffer[i+1]=='\n')
+            {
+                buffer[i] = '\0';
+                endOfTextFlag=1;
+                break;
+            }
+        }
+        strcat(dataReceived, buffer);
+        if(endOfTextFlag)
+            break;
+    }
+    return;
+}
 
 
-// // Acknowledment of scuccessful acceptance to the client
-//             snprintf(buffer, sizeof(buffer), "220 <%s> Service ready\r\n", username);
-//             send(clientSocketFD, buffer, strlen(buffer), 0);
+void respondToUSER(int clientSocketFD, char *dataReceived)
+{
 
-//             // Continuously receive command response from client
-//             char *commandFromClient;
-//             char receiverMailAddr[MAXEMAILADDRLEN];
-//             while(1)
-//             {
-//                 endOfTextFlag=0;
-//                 for(i=0; i<DATASIZE; i++)
-//                 {
-//                     dataReceived[i] = '\0';
-//                 }
-//                 while(1)
-//                 {
-//                     bytesReceived = recv(clientSocketFD, buffer, sizeof(buffer), 0);
-//                     if (bytesReceived == -1)
-//                     {
-//                         perror("Error receiving from client server");
-//                         exit(EXIT_FAILURE);
-//                     }
-//                     buffer[bytesReceived]='\0';
-//                     for(i=0; i<bytesReceived-1; i++)
-//                     {
-//                         if(buffer[i]=='\r' && buffer[i+1]=='\n')
-//                         {
-//                             buffer[i] = '\0';
-//                             endOfTextFlag=1;
-//                             break;
-//                         }
-//                     }
-//                     strcat(dataReceived, buffer);
-//                     if(endOfTextFlag)
-//                         break;
-//                 }
-//                 printf("%s\n", dataReceived);
-//                 // Process each command as required 
-//                 char _dataReceived_[DATASIZE];
-//                 strcpy(_dataReceived_, dataReceived);
-//                 commandFromClient = strtok(_dataReceived_, " \t\n");
-//                 if(strcmp(commandFromClient, "HELO")==0)
-//                 {
-//                     respondToHELO(clientSocketFD, dataReceived);
-//                 }
-//                 else if(strcmp(commandFromClient, "MAIL")==0)
-//                 {
-//                     respondToMAIL(clientSocketFD, dataReceived);
-//                 }
-//                 else if(strcmp(commandFromClient, "RCPT")==0)
-//                 {
-//                     respondToRCPT(clientSocketFD, dataReceived, receiverMailAddr);
-//                 }
-//                 else if(strcmp(commandFromClient, "DATA")==0)
-//                 {
-//                     respondToDATA(clientSocketFD, dataReceived, receiverMailAddr);
-//                 }
-//                 else if(strcmp(commandFromClient, "QUIT")==0)
-//                 {
-//                     respondToQUIT(clientSocketFD, dataReceived, username);
-//                 }
-//                 else
-//                 {
-//                     fprintf(stderr, "invalid command received from client.\n Exiting... \n");
-//                     exit(EXIT_FAILURE);
-//                 }
-
-//             }
-
-//             printf("\n\n");
+}
