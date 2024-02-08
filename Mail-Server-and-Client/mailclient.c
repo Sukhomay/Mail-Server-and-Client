@@ -21,6 +21,8 @@ int checkFormat_6(const char *str);
 int checkFormat_7(const char *str);
 int checkFormat_8(const char *str);
 
+void manage_mail(int pop3_port, const char *server_IP, const char *username, const char *password);
+
 int main(int argc, char *argv[]) 
 {
     // Error in case of incorrect set of arguments
@@ -56,6 +58,7 @@ int main(int argc, char *argv[])
             case 1:
                 // Implement manage mail functionality
                 printf("Option Manage Mail selected.\n");
+                manage_mail(pop3Port, serverIP, username, password);
                 break;
             case 2:
                 // Send mail functionality
@@ -114,7 +117,10 @@ void send_mail(int smtp_port, const char *server_IP, const char *username)
                 printf("Incorrect format!\n");
                 return;
             }
-            snprintf(sender, sizeof(sender), "%s", mailContent[ind] + 6);
+            int i = 6;
+            while(mailContent[ind][i] == ' ')
+                i++;
+            snprintf(sender, sizeof(sender), "%s", mailContent[ind] + i);
         }
         else if(ind == 1)
         {
@@ -124,7 +130,10 @@ void send_mail(int smtp_port, const char *server_IP, const char *username)
                 printf("Incorrect format!\n");
                 return;
             }
-            snprintf(recipient, sizeof(recipient), "%s", mailContent[ind] + 4);
+            int i = 4;
+            while(mailContent[ind][i] == ' ')
+                i++;
+            snprintf(recipient, sizeof(recipient), "%s", mailContent[ind] + i);
         }
         else if(ind == 2)
         {
@@ -217,7 +226,7 @@ void send_mail(int smtp_port, const char *server_IP, const char *username)
 
 
     // Sending RCPT command
-    snprintf(buffer, sizeof(buffer), "RCPT TO: %s\r\n", recipient);
+    snprintf(buffer, sizeof(buffer), "RCPT TO: <%s>\r\n", recipient);
     send(smtp_socket, buffer, strlen(buffer), 0);
 
     // Receiving response for RCPT command
@@ -423,5 +432,41 @@ int checkFormat_8(const char *str)
         return 1;
     }
     return 0;
+
+}
+
+/////////////////////////////////////////////////////////
+
+
+
+void manage_mail(int pop3_port, const char *server_IP, const char *username, const char *password)
+{
+    // Socket creation
+    int smtp_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (smtp_socket == -1) 
+    {
+        perror("SMTP socket creation failed!\n Exiting...\n");
+        exit(EXIT_FAILURE);
+    }
+    struct sockaddr_in server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(pop3_port);
+    server_address.sin_addr.s_addr = inet_addr(server_IP);
+
+    // Connect to the server port
+    if (connect(smtp_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1)
+    {
+        perror("Error connecting to SMTP server,\n Exiting...\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char buffer[MAX_BUFFER_SIZE];
+    char dataReceived[MAX_BUFFER_SIZE];
+    size_t bytesReceived;
+    int endOfTextFlag=0;
+    int i;
+    char* serverDomainName;
+
+    recv(smtp_socket, buffer, sizeof(buffer), 0);
 
 }

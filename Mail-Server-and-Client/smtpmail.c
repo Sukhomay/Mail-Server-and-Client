@@ -243,21 +243,30 @@ void respondToMAIL(int clientSocketFD, char dataReceived[])
 // Funtion to respond to RCPT command
 void respondToRCPT(int clientSocketFD, char dataReceived[], char receiverMailAddr[])
 {
-    if (strncmp(dataReceived, "RCPT TO: ", 9) != 0) 
+    if (strncmp(dataReceived, "RCPT TO: <", 10) != 0 || strlen(dataReceived) <= 10) 
     {
         fprintf(stderr, "Invalid command received from client.\n Exiting... \n");
         exit(EXIT_FAILURE);
     }
-    const char *email_start = dataReceived + 9; // Move past "RCPT TO: "
-    const char *email_end = strchr(email_start, '\0');
-    if (email_end == email_start) 
+    const char *end_bracket = strchr(dataReceived + 10, '>');
+    if (end_bracket == NULL) 
     {
-        fprintf(stderr, "No sender address recceived. Invalid command received from client.\n Exiting... \n");
+        fprintf(stderr, "Invalid command received from client.\n Exiting... \n");
+        exit(EXIT_FAILURE);
+    }
+    const char *at_symbol = strchr(dataReceived + 10, '@');
+    if (at_symbol == NULL || at_symbol > end_bracket) 
+    {
+        fprintf(stderr, "Invalid command received from client.\n Exiting... \n");
         exit(EXIT_FAILURE);
     }
 
-    strncpy(receiverMailAddr, email_start, email_end - email_start);
-    receiverMailAddr[email_end - email_start] = '\0';
+    const char *start_bracket = strstr(dataReceived, "<");
+    end_bracket = strstr(dataReceived, ">");
+    start_bracket++;
+    int lengthAddr = end_bracket - start_bracket;
+    strncpy(receiverMailAddr, start_bracket, lengthAddr);
+    receiverMailAddr[lengthAddr] = '\0';
 
 
     FILE *userFilePtr = fopen(userListFile, "r");
