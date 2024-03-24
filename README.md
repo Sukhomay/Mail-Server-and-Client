@@ -1,6 +1,6 @@
 # Mail Server and Client
 
-This repository contains the code for a simple mail server and client developed as part of the CS 39006: Networks Lab course. The project implements SMTP (Simple Mail Transfer Protocol) and POP3 (Post Office Protocol version 3) to enable sending, receiving, and managing emails.
+This repository contains the code for a simple mail server and client developed as part of the CS 39006: Networks Lab course by Sukhomay Patra(myself) and Abir Roy. The project implements SMTP (Simple Mail Transfer Protocol) and POP3 (Post Office Protocol version 3) to enable sending, receiving, and managing emails.
 
 ## Overview
 
